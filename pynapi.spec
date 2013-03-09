@@ -6,9 +6,6 @@ Release:	3
 License:	GPL v3+
 Group:		Applications/Multimedia
 Source0:	pynapi.py
-BuildRequires:	python-modules
-BuildRequires:	rpm-pythonprov
-%pyrequires_eq  python-modules
 BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -23,13 +20,13 @@ NAPI.
 %setup -q -c -T
 
 %install
-rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT%{_bindir}
+rm -rf %{buildroot}
+install -d %{buildroot}/%{_bindir}
 
-install %{SOURCE0} $RPM_BUILD_ROOT%{_bindir}/pynapi
+install %{SOURCE0} %{buildroot}/%{_bindir}/pynapi
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %files
 %defattr(644,root,root,755)
