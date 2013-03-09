@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 #  Copyright (C) 2009 Arkadiusz Miśkiewicz <arekm@pld-linux.org>
 #
@@ -65,6 +65,10 @@ def usage():
     print >> sys.stderr, "     -c, --nocover         do not download cover images"
     print >> sys.stderr, "     -u, --update          fetch new and also update existing subtitles"
     print >> sys.stderr, "     -d, --dest=DIR        destination directory"
+    print >> sys.stderr, "     -t, --tool-mode       run in tool mode"
+    print >> sys.stderr, "                           download subtitles for single file, exit codes:"
+    print >> sys.stderr, "                           0 - subtitle found & downloaded, print subtitle path to stdout"
+    print >> sys.stderr, "                           non-0 - any other failure"
     print >> sys.stderr
     print >> sys.stderr, "pynapi $Revision$"
     print >> sys.stderr
@@ -151,7 +155,7 @@ def get_subtitle(digest, lang="PL"):
 def main(argv=sys.argv):
 
     try:
-        opts, args = getopt.getopt(argv[1:], "d:hl:nuc", ["dest", "help", "lang", "nobackup", "update", "nocover"])
+        opts, args = getopt.getopt(argv[1:], "d:hl:nuct", ["dest", "help", "lang", "nobackup", "update", "nocover", "tool-mode"])
     except getopt.GetoptError, err:
         print str(err)
         usage()
@@ -164,6 +168,7 @@ def main(argv=sys.argv):
     update = False
     lang = 'pl'
     dest = None
+    tool = False
     for o, a in opts:
         if o == "-v":
             verbose = True
@@ -184,6 +189,8 @@ def main(argv=sys.argv):
             nocover = True
         elif o in ("-d", "--dest"):
             dest = a
+        elif o in ("-t", "--tool-mode"):
+            tool = True
         else:
             print >> sys.stderr, "%s: unhandled option" % prog
             return 1
@@ -195,14 +202,21 @@ def main(argv=sys.argv):
     print >> sys.stderr, "%s: Subtitles language `%s'. Finding video files..." % (prog, lang)
 
     files = []
-    for arg in args:
-        if os.path.isdir(arg):
-            for dirpath, dirnames, filenames in os.walk(arg, topdown=False):
-                for file in filenames:
-                    if file[-4:-3] == '.' and file.lower()[-3:] in video_files:
-                        files.append(os.path.join(dirpath, file))
+    if tool:
+        if len(args) != 1:
+            print >> sys.stderr, "Incorrect usage for tool mode"
+            return 3
         else:
-            files.append(arg)
+            files.append(args[0])
+    else:
+        for arg in args:
+            if os.path.isdir(arg):
+                for dirpath, dirnames, filenames in os.walk(arg, topdown=False):
+                    for file in filenames:
+                        if file[-4:-3] == '.' and file.lower()[-3:] in video_files:
+                            files.append(os.path.join(dirpath, file))
+            else:
+                files.append(arg)
 
     files.sort()
 
@@ -240,6 +254,9 @@ def main(argv=sys.argv):
             sub = get_subtitle(digest, languages[lang])
         except:
             print >> sys.stderr, "%s: %d/%d: %s" % (prog, i, i_total, sys.exc_info()[1])
+            if tool:
+                print >> sys.stderr, "tool mode, exit"
+                return 5
             continue
 
         fp = open(vfile, 'wb')
@@ -263,6 +280,11 @@ def main(argv=sys.argv):
                 cover_stored = ", %s COVER STORED (%d bytes)" % (extension, len(cover))
 
         print >> sys.stderr, "%s: %d/%d: SUBTITLE STORED (%d bytes)%s" % (prog, i, i_total, len(sub), cover_stored)
+        # handle tool mode case
+        if tool:
+            print >> sys.stderr, "tool mode, subtitles found, exit"
+            print vfile
+            return 0
 
     return 0
 
